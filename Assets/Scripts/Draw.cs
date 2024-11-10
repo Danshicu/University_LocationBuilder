@@ -1,8 +1,19 @@
+using System.Globalization;
+using System.IO;
+using System.Threading.Tasks;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class Draw : MonoBehaviour
 {
+    [SerializeField] private TMP_InputField sizeInputField;
+    [SerializeField] private Slider sizeSlider;
+    
+    [SerializeField] private TMP_InputField thresholdInputField;
+    [SerializeField] private Image colorFillAreaImage;
+    [SerializeField] private Slider thresholdSlider;
 
     public Camera cam;//Reference to the camera in the scene
 
@@ -11,6 +22,7 @@ public class Draw : MonoBehaviour
     public int totalYPixels = 512;
 
     //Brush properties
+    [Range(1,50)]
     public int brushSize = 4;
     public Color brushColor;
 
@@ -44,9 +56,14 @@ public class Draw : MonoBehaviour
     float xMult;
     float yMult;
 
-    public Image img;
+    private Vector3 _lastMousePos;   
+    
+    private float thresholdF = 1;
+    private bool isChangingColor = false;
 
-    private void Start()
+    private bool isChangingSize;
+
+    private void OnEnable()
     {
         //Initializing the colorMap array with width * height elements
         colorMap = new Color[totalXPixels * totalYPixels];
@@ -55,25 +72,98 @@ public class Draw : MonoBehaviour
         //material.SetTexture("_BaseMap", generatedTexture); //Giving our material the new texture
         material.mainTexture = generatedTexture;
         
-        ResetColor(); //Resetting the color of the canvas to white
+        Clear(); //Resetting the color of the canvas to white
 
         xMult = totalXPixels / (bottomRightCorner.localPosition.x - topLeftCorner.localPosition.x);//Precalculating constants
         yMult = totalYPixels / (bottomRightCorner.localPosition.y - topLeftCorner.localPosition.y);
         
+        thresholdSlider.value = thresholdF;
+        thresholdInputField.text = thresholdF.ToString();
         
+        sizeSlider.value = brushSize;
+        sizeInputField.text = brushSize.ToString();
     }
 
-    private void Update()
+    public void ChangeColorFromInputField()
     {
-        if (Input.GetMouseButton(0))//If the mouse is pressed, call the function
-            CalculatePixel();
+        if (!isChangingColor)
+        {
+            isChangingColor = true;
+            int thValue = int.TryParse(thresholdInputField.text, out thValue) ? thValue : 0;
+            thresholdF = (float)thValue / 100;
+            brushColor = Color.white * thresholdF;
+            brushColor.a = 1;
+            var color = Color.white*(thresholdF * 5);
+            color.a = 1;
+            colorFillAreaImage.color = color;
+            thresholdSlider.value = thValue;
+            isChangingColor = false;
+        }
+    }
+    
+    public void ChangeColorFromSlider()
+    {
+        if (!isChangingColor)
+        {
+            isChangingColor = true;
+            thresholdF = thresholdSlider.value / 100;
+            brushColor = Color.white * thresholdF;
+            brushColor.a = 1;
+            var color = Color.white*(thresholdF * 5);
+            color.a = 1;
+            colorFillAreaImage.color = color;
+            thresholdInputField.text = thresholdSlider.value.ToString();
+            isChangingColor = false;
+        }
+    }
+    
+    public void ChangeSizeFromInputField()
+    {
+        if (!isChangingSize)
+        {
+            isChangingSize = true;
+            int thValue = int.TryParse(sizeInputField.text, out thValue) ? thValue : 0;
+            brushSize = thValue;
+            sizeSlider.value = thValue;
+            isChangingColor = false;
+        }
+    }
+    
+    public void ChangeSizeFromSlider()
+    {
+        if (!isChangingSize)
+        {
+            isChangingSize = true;
+            brushSize = (int)sizeSlider.value;
+            sizeInputField.text = sizeSlider.value.ToString();
+            isChangingSize = false;
+        }
+    }
+
+    public async void Save()
+    {
+        var bytes = generatedTexture.EncodeToPNG();
+        string filePath = Path.Combine(Application.persistentDataPath, "SavedTexture.png");
+        await Task.Run(() => File.WriteAllBytes(filePath, bytes));
+    }
+
+    private void FixedUpdate()
+    {
+        if (Input.GetMouseButton(0)) //If the mouse is pressed, call the function
+        {
+            if (_lastMousePos != Input.mousePosition)
+            {
+                _lastMousePos = Input.mousePosition;
+                CalculatePixel();
+            }
+        }
         else //Else, we did not draw, so on the next frame we should not apply interpolation
             pressedLastFrame = false;
     }
 
     void CalculatePixel()//This function checks if the cursor is currently over the canvas and, if it is, it calculates which pixel on the canvas it is on
     {
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);//Get a ray from the center of the camera to the mouse position
+        Ray ray = cam.ScreenPointToRay(_lastMousePos);//Get a ray from the center of the camera to the mouse position
         RaycastHit hit;
         if (Physics.Raycast(ray, out hit, 20f))//Check if the ray hits something
         {
@@ -120,12 +210,7 @@ public class Draw : MonoBehaviour
                 if ((x - xPix) * (x - xPix) + (y - yPix) * (y - yPix) <=
                     brushSize * brushSize) //Using the circle's formula(x^2+y^2<=r^2) we check if the current point is inside the circle
                 {
-                    var targetAlfa = colorMap[x * totalYPixels + y].a + brushColor.a;
-                    
-                    //ЕСЛИ НЕПРОЗРАЧНОСТЬ 10 ПРОЦЕНТОВ - ОТНИМАЕМ ЦЕЛЫЙ ЦВЕТ УМНОЖЕННЫЙ НА 10 ПРОЦЕНТОВ
-                    //ЕСЛИ НЕПРОЗРАЧНОСТЬ 60 ПРОЦЕНТОВ - ОТНИМАЕМ БЕЛЫЙ ЦВЕТ УМНОЖЕННЫЙ НА 60 ПРОЦЕНТОВ
-                    
-                    colorMap[x * totalYPixels + y] -= brushColor;
+                    colorMap[x * totalYPixels + y] += brushColor /10;
                     //colorMap[x * totalYPixels + y].a = targetAlfa;
                 }
             }
@@ -138,10 +223,10 @@ public class Draw : MonoBehaviour
         generatedTexture.Apply();
     }
 
-    void ResetColor() //This function resets the color to white
+    public void Clear() //This function resets the color to white
     {
         for (int i = 0; i < colorMap.Length; i++)
-            colorMap[i] = Color.white;
+            colorMap[i] = Color.black;
         SetTexture();
     }
 
