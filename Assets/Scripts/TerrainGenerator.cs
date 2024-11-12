@@ -1,17 +1,27 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class TerrainGenerator : MonoBehaviour
 {
+    [SerializeField] private TMP_InputField HeightInput;
+
+    [SerializeField] private TMP_InputField WidthInput;
+
+    [SerializeField] private TMP_InputField DepthInput;
     
     // Размеры ландшафта
-    public int terrainWidth = 512;
-    public int terrainHeight = 512;
-    public int terrainDepth = 100;
+    private int terrainWidth = 512;
+    private int terrainHeight = 512;
+    private int terrainDepth = 100;
     
     public void GenerateTerrain()
     {
+        if (!int.TryParse(HeightInput.text, out terrainHeight) || 
+            !int.TryParse(WidthInput.text, out terrainWidth) ||
+            !int.TryParse(DepthInput.text, out terrainDepth)) return;
+        
         // Создаем объект TerrainData
         TerrainData terrainData = new TerrainData();
         terrainData.heightmapResolution = CreatorWindow.Instance.HeightMap.width;
@@ -20,7 +30,8 @@ public class TerrainGenerator : MonoBehaviour
         terrainData.size = new Vector3(terrainWidth, terrainDepth, terrainHeight);
 
         // Создаем массив высот
-        float[,] heights = new float[CreatorWindow.Instance.HeightMap.width, CreatorWindow.Instance.HeightMap.height];
+        float[,] heights = new float[CreatorWindow.Instance.HeightMap.width,
+            CreatorWindow.Instance.HeightMap.height];
 
         // Заполняем массив высот на основе heightmap
         for (int x = 0; x < CreatorWindow.Instance.HeightMap.width; x++)

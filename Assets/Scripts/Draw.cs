@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
@@ -143,7 +144,8 @@ public class Draw : MonoBehaviour
     public async void Save()
     {
         var bytes = generatedTexture.EncodeToPNG();
-        string filePath = Path.Combine(Application.persistentDataPath, "SavedTexture.png");
+        string name = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+        string filePath = Path.Combine(Application.persistentDataPath, $"{name}.png");
         await Task.Run(() => File.WriteAllBytes(filePath, bytes));
     }
 
