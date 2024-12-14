@@ -5,17 +5,29 @@ using UnityEngine;
 
 public class TerrainPaintController : MonoBehaviour
 {
-    [SerializeField] private TerrainPainter painter;
-    [SerializeField] private TerrainPainterPreset preset;
+    [SerializeField] public TerrainPainter painter;
+    [SerializeField] public TerrainPainterPreset preset;
     
     // Start is called before the first frame update
     void Start()
-    {    
+    {
+        //painter.layerSettings = preset.Settings.Keys;
     }
 
+    [ContextMenu("CopySettings")]
+    public void CopySettings()
+    {
+        //var settings = painter.GetComponent<TerrainPainterInspector>().m_modifierList;
+        //preset.Settings = settings;
+    }
+    
+    
     // Update is called once per frame
     void Update()
     {
         
     }
+    
+    
+    
 }

@@ -504,6 +504,7 @@ namespace sc.terrain.proceduralpainter
                     
                     RemoveLayerElement(m_LayerList.index);
                 }
+                
                 EditorGUI.EndDisabledGroup();
             }
             

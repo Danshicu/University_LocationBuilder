@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -5,6 +6,8 @@ using UnityEngine;
 
 public class TerrainGenerator : MonoBehaviour
 {
+    public event Action OnTerrainGenerated;
+    
     [SerializeField] private TMP_InputField HeightInput;
 
     [SerializeField] private TMP_InputField WidthInput;
@@ -50,5 +53,7 @@ public class TerrainGenerator : MonoBehaviour
         // Создаем объект Terrain
         GameObject terrainObj = Terrain.CreateTerrainGameObject(terrainData);
         terrainObj.transform.position = Vector3.zero;
+        
+        OnTerrainGenerated?.Invoke();
     }
 }
